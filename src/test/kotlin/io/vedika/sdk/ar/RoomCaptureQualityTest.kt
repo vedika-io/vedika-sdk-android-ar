@@ -56,9 +56,11 @@ class RoomCaptureQualityTest {
     }
 
     @Test fun pointsOutsideTheOutlineDoNotCount() {
-        // All points fall well outside the 2x2 outline -> no inside cell is hit.
+        // All points fall well outside the 2x2 outline -> every inside cell
+        // is still counted (the outline itself is not degenerate), but none
+        // is hit, so this is a real, reportable 0% -- not "not reported".
         val points = listOf(10.0 to 10.0, -5.0 to -5.0)
-        assertNull(RoomCaptureQuality.coveragePercent(square2x2, points))
+        assertEquals(0.0, RoomCaptureQuality.coveragePercent(square2x2, points)!!, 1e-9)
     }
 
     @Test fun duplicatePointsInTheSameCellCountOnce() {

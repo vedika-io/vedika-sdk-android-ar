@@ -279,12 +279,22 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
         }
     }
 
-    /** Releases the [Session]. Call from `onDestroy()`. */
+    /**
+     * Releases the [Session]. Call from `onDestroy()` — and also from the AR
+     * test lab's replay test between datasets: this resets every bit of
+     * per-session state ([reticle], [holdingNorth], [reportedTrackingLostOnce],
+     * [lastFrame]) so a fresh [start] after [destroy] is a clean session, not
+     * one carrying a stray flag from the dataset before it.
+     */
     fun destroy() {
         stopRecording()
         session?.close()
         session = null
         model = null
+        reticle = null
+        holdingNorth = false
+        reportedTrackingLostOnce = false
+        lastFrame = null
     }
 
     private fun onSelect() {

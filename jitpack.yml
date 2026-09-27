@@ -1,0 +1,20 @@
+# Same root cause as sdks/android/jitpack.yml (that module's fix, landed here
+# in this same change): JitPack's default build image sets ANDROID_HOME
+# (/opt/android-sdk-linux) but ships NO platform under it — only
+# platform-tools/build-tools/tools. This module is a real `com.android.library`
+# (compileSdk 35), so AGP needs platform 34/35/36's android.jar to compile at
+# all, not just to package one file. The bundled `tools/bin/sdkmanager` (an
+# old, deprecated SDK tool, ~2022) may be too old to know about platform 34's
+# repository entry, so this first tries it, then falls back to a freshly
+# downloaded `cmdline-tools` sdkmanager — pointed at the SAME `$ANDROID_HOME`,
+# via `--sdk_root`, so the platform lands exactly where the later Gradle build
+# (a separate shell invocation; env exported here does not carry over)
+# already looks for it.
+before_install:
+  - yes | "$ANDROID_HOME/tools/bin/sdkmanager" --licenses > /tmp/sdk_lic_old.log 2>&1; true
+  - $ANDROID_HOME/tools/bin/sdkmanager "platforms;android-35" > /tmp/sdk_install_old.log 2>&1; tail -40 /tmp/sdk_install_old.log; true
+  - test -f "$ANDROID_HOME/platforms/android-35/android.jar" && echo "OLD_SDKMANAGER_OK" || echo "OLD_SDKMANAGER_INSUFFICIENT"
+  - bash -c 'if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then mkdir -p /tmp/cmdline-tools-fresh && curl -sL -o /tmp/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools-fresh && yes | /tmp/cmdline-tools-fresh/cmdline-tools/bin/sdkmanager --sdk_root="$ANDROID_HOME" --licenses > /tmp/sdk_lic_new.log 2>&1; /tmp/cmdline-tools-fresh/cmdline-tools/bin/sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-35" > /tmp/sdk_install_new.log 2>&1; tail -40 /tmp/sdk_install_new.log; fi; true'
+  - test -f "$ANDROID_HOME/platforms/android-35/android.jar" && echo "ANDROID_PLATFORM_READY" || echo "ANDROID_PLATFORM_MISSING"
+jdk:
+  - openjdk17

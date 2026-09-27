@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- "optional": the host app decides whether AR room capture is a
+         required feature of the whole app (Google Play then hides the app
+         entirely from devices without ARCore) or an optional one (the app
+         installs everywhere and this module's own availability checks —
+         ArCoreAvailability.status — gate the feature). Vastu room capture is
+         one feature among many, so this library defaults to optional; a
+         consuming app that wants the strict, store-filtered behavior
+         overrides both entries via manifest merging, e.g.:
+         <uses-feature android:name="android.hardware.camera.ar" android:required="true" tools:node="replace" />
+         <meta-data android:name="com.google.ar.core" android:value="required" tools:node="replace" /> -->
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+
+    <application>
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
+    </application>
+
+</manifest>

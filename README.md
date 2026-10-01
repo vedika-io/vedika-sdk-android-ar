@@ -31,7 +31,7 @@ dependencyResolutionManagement {
 // app/build.gradle.kts
 dependencies {
     implementation("com.github.vedika-io:vedika-sdk-android:1.0.4")
-    implementation("com.github.vedika-io:vedika-sdk-android-ar:<latest tag>")
+    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.0.1")
 }
 ```
 
@@ -98,6 +98,17 @@ Finish) drives `RoomCaptureModel` the same way the web reference's HUD does.
 Set `captureView.pendingRoomLabel` (e.g. from your own room-name picker —
 `RoomCaptureModel.ROOM_LABELS` has the same list the web reference offers)
 before tapping "Add room".
+
+### Keep the scan in the account
+
+`VastuArCoreUploader.saveCapture(client, capture, scanId, propertyId, title, retentionDays)`
+stores the capture JSON (never a mesh or camera image) through `scans/save`.
+It is billed at USD 0.005 per save and needs account scan storage enabled on
+the deployment (otherwise `503 SCAN_STORAGE_DISABLED`, before any charge).
+Generate `scanId` yourself (16-128 characters of `A-Za-z0-9_-`) and keep it:
+after a timeout, retry with the same `scanId` and the same content so you are
+not charged twice. No `Idempotency-Key` is sent. Read
+`response.data.persistence`: `account-store` means the scan was kept.
 
 ## What a capture claims — and does not
 

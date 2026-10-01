@@ -26,7 +26,7 @@ plugins {
 // the local defaults only when the property is absent (a bare `./gradlew jar`
 // on a dev machine) or still Gradle's own "unspecified" placeholder.
 group = (findProperty("group") as String?).takeUnless { it.isNullOrBlank() } ?: "io.vedika"
-version = (findProperty("version") as String?).takeUnless { it.isNullOrBlank() || it == "unspecified" } ?: "1.0.0"
+version = (findProperty("version") as String?).takeUnless { it.isNullOrBlank() || it == "unspecified" } ?: "1.0.1"
 
 android {
     namespace = "io.vedika.sdk.ar"
@@ -62,6 +62,8 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
+    // Loopback server for VastuArCoreUploaderTest.
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
 
 publishing {

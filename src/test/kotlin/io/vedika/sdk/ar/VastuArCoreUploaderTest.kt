@@ -86,6 +86,33 @@ class VastuArCoreUploaderTest {
         assertEquals("token-1", attestation.getString("integrityToken"))
     }
 
+    // Serialization parity with the Swift RoomCaptureUploader.upload test
+    // (RoomCaptureUploaderTests): same body keys, same attestation field names.
+    @Test fun uploadForwardsDeviceAttestationUnchangedAndOmitsItWhenAbsent() = withServer { server, client ->
+        val capture = fixtureCapture()
+        repeat(2) { server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("""{"success":true,"data":{}}""")) }
+        val attestation = VastuDeviceAttestation(platform = "android", challenge = "challenge-1", integrityToken = "token-1")
+        VastuArCoreUploader.upload(client, capture, zoneResolution = 16, idempotencyKey = "upload-key-1", deviceAttestation = attestation)
+        VastuArCoreUploader.upload(client, capture)
+
+        val withProof = server.takeRequest()
+        assertEquals("POST", withProof.method)
+        assertEquals("/v2/astrology/vastu/ar/room-capture", withProof.path)
+        assertEquals("upload-key-1", withProof.getHeader("Idempotency-Key"))
+        val sent = JSONObject(withProof.body.readUtf8())
+        assertEquals(setOf("capture", "zoneResolution", "deviceAttestation"), sent.keySet())
+        assertEquals(16, sent.getInt("zoneResolution"))
+        val proof = sent.getJSONObject("deviceAttestation")
+        assertEquals(setOf("platform", "challenge", "integrityToken"), proof.keySet())
+        assertEquals("android", proof.getString("platform"))
+        assertEquals("challenge-1", proof.getString("challenge"))
+        assertEquals("token-1", proof.getString("integrityToken"))
+        assertEquals(capture.captureId, sent.getJSONObject("capture").getString("captureId"))
+
+        val without = JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals(setOf("capture"), without.keySet())
+    }
+
     @Test fun aPreviewOnlyAnswerIsReportedAsNotStored() = withServer { server, client ->
         val capture = fixtureCapture()
         server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody(savedBody("preview-only")))

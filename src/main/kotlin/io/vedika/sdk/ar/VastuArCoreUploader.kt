@@ -28,16 +28,25 @@ object VastuArCoreUploader {
      * Call from a coroutine scope (e.g. `lifecycleScope.launch { ... }`) —
      * this suspends off the calling dispatcher exactly like every other
      * [VedikaClient] call (see `VedikaClient.post`).
+     *
+     * [deviceAttestation] is the optional Play Integrity proof for this
+     * capture (see `VastuOperation.ArAttestationChallenge`). It is forwarded
+     * unchanged; omit it and the request carries no attestation field.
      */
     suspend fun upload(
         client: VedikaClient,
         capture: VastuRoomCapture,
         zoneResolution: Int? = null,
         idempotencyKey: String? = null,
+        deviceAttestation: VastuDeviceAttestation? = null,
     ): VastuTypedResponse<VastuArRoomCaptureData> =
         client.vastu.vastuOperation(
             VastuContracts.arRoomCapture,
-            VastuArRoomCaptureRequest(capture = capture, zoneResolution = zoneResolution),
+            VastuArRoomCaptureRequest(
+                capture = capture,
+                zoneResolution = zoneResolution,
+                deviceAttestation = deviceAttestation,
+            ),
             idempotencyKey = idempotencyKey,
         )
 

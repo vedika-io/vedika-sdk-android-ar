@@ -30,8 +30,8 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.vedika-io:vedika-sdk-android:1.0.4")
-    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.0.1")
+    implementation("com.github.vedika-io:vedika-sdk-android:1.1.0")
+    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.0.2")
 }
 ```
 
@@ -132,8 +132,20 @@ not charged twice. No `Idempotency-Key` is sent. Read
   LiDAR-backed scanning does. The server accordingly returns
   `acceptForAudit: false` for a plain hit-test capture; zones are still
   computed.
-- **Attestation**: `"caller-reported"`, same as every platform. The server
-  does not independently verify device geometry.
+- **Attestation**: `capture.attestation` is always `"caller-reported"`: the
+  server does not independently verify device geometry. Separately, an app can
+  prove it is a genuine build on a real device with Google Play Integrity. Ask
+  for a challenge (`VastuContracts.arAttestationChallenge`), request a Play
+  Integrity token whose nonce is the request-binding digest (SHA-256 over
+  `vedika-attest-v1`, the operation, the challenge and the canonical request
+  body; see the guide), and send it as
+  `VastuDeviceAttestation(platform = "android", challenge, integrityToken)` in
+  `deviceAttestation` on `ar/room-capture` or `scans/save`. A verified response
+  reports `deviceAttestation.status = "verified"`; scores do not change. The app
+  identity is yours: register your package, signing-certificate SHA-256 and
+  Play Integrity service account with Vedika first (see the Vastu API guide,
+  "Device attestation for native apps"). Until you register, responses report
+  `deviceAttestation.status = "not_configured"`.
 
 ## Testing
 

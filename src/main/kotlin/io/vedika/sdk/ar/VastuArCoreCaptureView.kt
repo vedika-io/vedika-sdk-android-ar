@@ -65,9 +65,8 @@ import javax.microedition.khronos.opengles.GL10
  * turn on this view's own event track (every tap, north-hold and
  * add-room/finish), written with `Frame.recordTrackData` and read back with
  * `Frame.getUpdatedTrackData` — camera + IMU + depth alone cannot replay this
- * flow because nothing on played-back video taps anything. See
- * `sdks/android-acceptance`'s `ArCoreRecordActivity` (record) and
- * `VastuArLabReplayTest` (replay) and `docs/ops/vastu-ar-lab/README.md`.
+ * flow because nothing on played-back video taps anything; Vedika's
+ * acceptance suite records and replays it on device.
  */
 class VastuArCoreCaptureView @JvmOverloads constructor(
     context: Context,

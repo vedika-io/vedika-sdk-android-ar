@@ -26,7 +26,7 @@ plugins {
 // the local defaults only when the property is absent (a bare `./gradlew jar`
 // on a dev machine) or still Gradle's own "unspecified" placeholder.
 group = (findProperty("group") as String?).takeUnless { it.isNullOrBlank() } ?: "io.vedika"
-version = (findProperty("version") as String?).takeUnless { it.isNullOrBlank() || it == "unspecified" } ?: "1.0.1"
+version = (findProperty("version") as String?).takeUnless { it.isNullOrBlank() || it == "unspecified" } ?: "1.0.2"
 
 android {
     namespace = "io.vedika.sdk.ar"
@@ -52,7 +52,7 @@ dependencies {
     // monorepo copy resolves it from local source via includeBuild instead;
     // see that copy's settings.gradle.kts). Bump this alongside the source
     // module's own published version.
-    implementation("com.github.vedika-io:vedika-sdk-android:1.0.4")
+    implementation("com.github.vedika-io:vedika-sdk-android:1.1.0")
 
     // ARCore: Session, Frame, Camera, Pose, hit-testing, Depth API support
     // checks. Current stable per Maven Central (checked 2026-09-23).

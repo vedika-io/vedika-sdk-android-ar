@@ -1,0 +1,63 @@
+name: Android AR candidate
+on:
+  push:
+    branches: ["ci/1.1.0-candidate"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install the declared Android tools
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Unit tests and release AAR
+        run: ./gradlew --no-daemon --max-workers=2 test assembleRelease publishReleasePublicationToConsumerRepository
+      - name: Compile the public consumer and package every native dependency
+        run: ./gradlew --no-daemon --max-workers=2 -p consumer assembleRelease
+      - name: Verify public exports and negative controls
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_*.py' -v
+          python3 scripts/verify_artifacts.py --aar build/outputs/aar/vedika-android-ar-release.aar --report build/public-api.json
+      - name: Keep build and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ar-build
+          path: |
+            build/outputs/aar/
+            build/test-results/
+            build/public-api.json
+            consumer/build/outputs/apk/release/*.apk
+  native-pages:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - run: sdkmanager "build-tools;35.0.0"
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-ar-build
+          path: artifacts
+      - name: Ratcheted 16 KB ELF, RELRO and ZIP check
+        run: |
+          python3 scripts/verify_artifacts.py --native artifacts/consumer/build/outputs/apk/release/consumer-release-unsigned.apk --zipalign "$ANDROID_HOME/build-tools/35.0.0/zipalign" --report native-pages.json
+      - name: Keep the complete native inventory, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ar-native-pages
+          path: native-pages.json

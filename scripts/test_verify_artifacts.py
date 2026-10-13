@@ -1,7 +1,6 @@
 import struct
 import unittest
 from verify_artifacts import elf_report, apply_ratchet
-import copy
 
 
 def library(load_align=16384, relro_end=16384):
@@ -37,10 +36,6 @@ class NativePageGateTest(unittest.TestCase):
         struct.pack_into("<I", data, 64, 0)
         with self.assertRaises(AssertionError):
             elf_report(data)
-
-
-if __name__ == "__main__":
-    unittest.main()
 
 class RatchetTest(unittest.TestCase):
     def setUp(self):
@@ -87,3 +82,7 @@ class RatchetTest(unittest.TestCase):
         self.row.update(elf_report(library()))
         self.row.update(passes16k=False, zip16k=False, library="lib/x86_64/other.so")
         self.assertFalse(apply_ratchet([self.row], self.known))
+
+
+if __name__ == "__main__":
+    unittest.main()

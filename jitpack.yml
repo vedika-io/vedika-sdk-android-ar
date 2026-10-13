@@ -1,15 +1,22 @@
-# Same root cause as sdks/android/jitpack.yml (that module's fix, landed here
-# in this same change): JitPack's default build image sets ANDROID_HOME
-# (/opt/android-sdk-linux) but ships NO platform under it — only
-# platform-tools/build-tools/tools. This module is a real `com.android.library`
-# (compileSdk 35), so AGP needs platform 34/35/36's android.jar to compile at
-# all, not just to package one file. The bundled `tools/bin/sdkmanager` (an
-# old, deprecated SDK tool, ~2022) may be too old to know about platform 34's
-# repository entry, so this first tries it, then falls back to a freshly
-# downloaded `cmdline-tools` sdkmanager — pointed at the SAME `$ANDROID_HOME`,
-# via `--sdk_root`, so the platform lands exactly where the later Gradle build
-# (a separate shell invocation; env exported here does not carry over)
-# already looks for it.
+# JitPack configuration for the Android AR 1.1.0 candidate — the
+# ARCore-native companion to `sdks/android`. JitPack's default build image
+# sets `ANDROID_HOME` (`/opt/android-sdk-linux`) but ships NO platform
+# under it — only `platform-tools/build-tools/tools` — so the platform
+# jar Gradle's compile classpath requires (compileSdk 35 per
+# `sdks/android-ar/build.gradle.kts`) and that `verifyArPackagingSdk` in
+# the consumed `io.vedika:vedika-android-sdk:1.1.0` checks for (any of
+# 34/35/36) must be installed before the gradle build runs. The bundled
+# `tools/bin/sdkmanager` predates Android-Gradle 8.5.2 and may refuse
+# the platform 35 repository entry, so this first tries the bundled
+# sdkmanager, then falls back to a freshly downloaded `cmdline-tools`
+# sdkmanager pointed at the SAME `$ANDROID_HOME` via `--sdk_root`, so
+# the platform lands exactly where Gradle already looks for it (the env
+# exported here does NOT carry over to Gradle's own shell — they are
+# separate invocations).
+#
+# NOTE: publish / signing credentials are deliberately NOT handled here.
+# Token retrieval for any operator-side publish step is out of scope for
+# this file and is read by the build itself from outside sources.
 before_install:
   - yes | "$ANDROID_HOME/tools/bin/sdkmanager" --licenses > /tmp/sdk_lic_old.log 2>&1; true
   - $ANDROID_HOME/tools/bin/sdkmanager "platforms;android-35" > /tmp/sdk_install_old.log 2>&1; tail -40 /tmp/sdk_install_old.log; true
@@ -18,3 +25,5 @@ before_install:
   - test -f "$ANDROID_HOME/platforms/android-35/android.jar" && echo "ANDROID_PLATFORM_READY" || echo "ANDROID_PLATFORM_MISSING"
 jdk:
   - openjdk17
+install:
+  - ./gradlew --no-daemon --max-workers=2 test assembleRelease publishToMavenLocal

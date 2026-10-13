@@ -18,6 +18,7 @@ import com.google.ar.core.DepthPoint
 import com.google.ar.core.Frame
 import com.google.ar.core.Plane
 import com.google.ar.core.Point
+import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
 import com.google.ar.core.TrackingState
@@ -27,6 +28,8 @@ import com.google.ar.core.exceptions.UnavailableException
 import java.nio.ByteBuffer
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
+import io.vedika.sdk.VastuArRoomCaptureData
+import io.vedika.sdk.VastuRoomCapture
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -106,6 +109,11 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
      */
     var sessionHook: ((Session) -> Unit)? = null
 
+    /** Current physical-landmark gate. Called on each GL frame; returning false
+     * prevents the overlay renderer from running. Clear both on Activity pause. */
+    var overlayGate: ((Frame) -> Boolean)? = null
+    var renderRelocalizedOverlay: ((Frame) -> Unit)? = null
+
     /** Non-null makes [start] write every tap/north/room event to this ARCore track for a recording. */
     @Volatile var recordingTrackId: UUID? = null
 
@@ -121,6 +129,9 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
     @Volatile private var depthAvailable = false
     @Volatile private var reportedTrackingLostOnce = false
     @Volatile private var lastFrame: Frame? = null
+    @Volatile private var sessionRunning = false
+    private var completedCapture: VastuRoomCapture? = null
+    private val remedyController = FloorRemedyController()
     private var installRequested = false
     private var pointCloudFrameCounter = 0
 
@@ -150,10 +161,11 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { gravity = android.view.Gravity.BOTTOM },
         )
 
-        undoButton.setOnClickListener { runOnGl { recordEvent("UNDO"); model?.undo(); reportProgress() } }
+        undoButton.setOnClickListener { runOnGl { invalidateRemedies(); recordEvent("UNDO"); model?.undo(); reportProgress() } }
         addRoomButton.setOnClickListener {
             runOnGl {
                 try {
+                    invalidateRemedies()
                     recordEvent("ADDROOM ${pendingRoomLabel.orEmpty()}")
                     model?.startRoom(pendingRoomLabel)
                     reportProgress()
@@ -165,7 +177,7 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
         finishButton.setOnClickListener { runOnGl { recordEvent("FINISH"); finishOnGlThread() } }
         northButton.setOnTouchListener { _, event ->
             when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> runOnGl { recordEvent("NORTH_DOWN"); model?.resetNorth(); holdingNorth = true }
+                MotionEvent.ACTION_DOWN -> runOnGl { invalidateRemedies(); recordEvent("NORTH_DOWN"); model?.resetNorth(); holdingNorth = true }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { recordEvent("NORTH_UP"); holdingNorth = false }
             }
             true
@@ -181,6 +193,31 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
     }
 
     private fun runOnGl(block: () -> Unit) = glSurfaceView.queueEvent(block)
+
+    /** Display returned remedies for the exact completed capture in this live
+     * session. Imported scans and stale responses cannot reuse its floor anchor.
+     * Purple floor rings locate room advice; the host displays full text/sources. */
+    fun showRemedies(capture: VastuRoomCapture, analysis: VastuArRoomCaptureData) = runOnGl {
+        remedyController.hide()
+        if (completedCapture != capture) {
+            postError("Complete this scan again before placing its remedies.")
+            return@runOnGl
+        }
+        try {
+            if (!remedyController.setScene(FloorRemedyScene.from(capture, analysis))) {
+                postError("Floor anchor unavailable. Start a fresh scan before placing remedies.")
+            }
+        } catch (e: IllegalArgumentException) {
+            postError("The returned remedies do not match this floor scan.", e)
+        }
+    }
+
+    fun clearRemedies() = runOnGl { remedyController.hide() }
+
+    private fun invalidateRemedies() {
+        completedCapture = null
+        remedyController.hide()
+    }
 
     private fun setState(state: RoomCaptureState) {
         currentState = state
@@ -210,7 +247,20 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
      * doc). No-op if a session is already running.
      */
     fun start() {
-        if (session != null) return
+        session?.let { existing ->
+            if (!sessionRunning) {
+                try {
+                    existing.resume()
+                    glSurfaceView.onResume()
+                    sessionRunning = true
+                    setState(RoomCaptureState.ACTIVE)
+                } catch (e: CameraNotAvailableException) {
+                    postError("The camera is in use by another app.", e)
+                    setState(RoomCaptureState.FAILED)
+                }
+            }
+            return
+        }
         when (val status = ArCoreAvailability.status(context)) {
             ArCoreAvailability.Status.UNSUPPORTED -> { setState(RoomCaptureState.UNSUPPORTED); return }
             ArCoreAvailability.Status.UNKNOWN -> { setState(RoomCaptureState.CHECKING); return }
@@ -224,6 +274,8 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
         try {
             val newSession = Session(context)
             val config = Config(newSession)
+            config.cloudAnchorMode = Config.CloudAnchorMode.DISABLED
+            config.geospatialMode = Config.GeospatialMode.DISABLED
             config.focusMode = Config.FocusMode.AUTO
             config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
             depthAvailable = newSession.isDepthModeSupported(Config.DepthMode.AUTOMATIC)
@@ -232,8 +284,9 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
             sessionHook?.invoke(newSession)
             session = newSession
             model = RoomCaptureModel(captureId = "android-${System.currentTimeMillis()}")
-            glSurfaceView.onResume()
             newSession.resume()
+            glSurfaceView.onResume()
+            sessionRunning = true
             setState(RoomCaptureState.ACTIVE)
         } catch (e: UnavailableException) {
             postError("Could not start the AR session: ${e.message}", e)
@@ -265,8 +318,9 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
 
     /** Pauses the [Session]. Call from `onPause()` — every pause path, no exceptions. */
     fun stop() {
-        session?.pause()
         glSurfaceView.onPause()
+        session?.pause()
+        sessionRunning = false
     }
 
     /** Stops an active ARCore recording (see [recordingTrackId]) without pausing the session. Safe to call when not recording. */
@@ -286,7 +340,12 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
      * one carrying a stray flag from the dataset before it.
      */
     fun destroy() {
+        stop()
         stopRecording()
+        remedyController.clear()
+        completedCapture = null
+        overlayGate = null
+        renderRelocalizedOverlay = null
         session?.close()
         session = null
         model = null
@@ -299,7 +358,22 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
     private fun onSelect() {
         val m = model ?: return
         if (!m.tracing || holdingNorth) return
+        if (lastFrame?.camera?.trackingState != TrackingState.TRACKING) return
         val point = reticle ?: return
+        invalidateRemedies()
+        if (m.outlineCorners.isEmpty()) {
+            remedyController.clear()
+            try {
+                val anchor = session?.createAnchor(Pose.makeTranslation(point.x.toFloat(), point.y.toFloat(), point.z.toFloat()))
+                if (anchor != null) remedyController.attach(object : RemedyFloorAnchor {
+                    override val tracking get() = anchor.trackingState == TrackingState.TRACKING
+                    override fun matrix() = FloatArray(16).also { anchor.pose.toMatrix(it, 0) }
+                    override fun detach() = anchor.detach()
+                }, point)
+            } catch (_: RuntimeException) {
+                postError("Floor anchor unavailable; captured remedies will stay hidden.")
+            }
+        }
         try {
             m.tap(point)
         } catch (e: IllegalStateException) {
@@ -318,6 +392,7 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
                 depth = if (depthAvailable) "arcore-depth" else "none",
             )
             val capture = m.build(device = device)
+            completedCapture = capture
             mainHandler.post { listener?.onCapture(capture) }
             setState(RoomCaptureState.CAPTURED)
         } catch (e: IllegalStateException) {
@@ -336,10 +411,11 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
         val rest = if (space < 0) "" else line.substring(space + 1)
         when (head) {
             "TAP" -> onSelect()
-            "NORTH_DOWN" -> { model?.resetNorth(); holdingNorth = true }
+            "NORTH_DOWN" -> { invalidateRemedies(); model?.resetNorth(); holdingNorth = true }
             "NORTH_UP" -> holdingNorth = false
             "ADDROOM" -> {
                 try {
+                    invalidateRemedies()
                     model?.startRoom(rest.ifEmpty { null })
                     reportProgress()
                 } catch (e: IllegalStateException) {
@@ -347,7 +423,7 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
                 }
             }
             "FINISH" -> finishOnGlThread()
-            "UNDO" -> { model?.undo(); reportProgress() }
+            "UNDO" -> { invalidateRemedies(); model?.undo(); reportProgress() }
         }
     }
 
@@ -442,9 +518,11 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
             }
             lastFrame = frame
             backgroundRenderer.draw(frame)
+            if (overlayGate?.invoke(frame) == true) renderRelocalizedOverlay?.invoke(frame)
 
             val camera = frame.camera
             if (camera.trackingState != TrackingState.TRACKING) {
+                reticle = null
                 if (camera.trackingState == TrackingState.PAUSED && !reportedTrackingLostOnce) {
                     reportedTrackingLostOnce = true
                     setState(RoomCaptureState.TRACKING_LOST)
@@ -499,6 +577,7 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
                 reticle = reticle,
                 viewMatrix = viewMatrix,
                 projectionMatrix = projectionMatrix,
+                remedies = remedyController.draw(cameraTracking = true),
             )
         }
     }

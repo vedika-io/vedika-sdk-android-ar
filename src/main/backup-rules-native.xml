@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copy these exclusions into the buyer application's existing backup rules.
+     Library resources cannot safely replace a buyer's application-wide policy. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="vedika_capture_keyset.xml" />
+</full-backup-content>

@@ -1,0 +1,635 @@
+{
+ "fixture": "l-shape-traced",
+ "about": "10 m L-shaped plot with the north-east quarter cut, a traced outline, four labelled rooms and one untagged store; native true heading with one 40° spike sample.",
+ "session": {
+  "captureId": "fx-l-shape-traced",
+  "capturedAtEpoch": 1789000000,
+  "device": {
+   "platform": "ios",
+   "method": "arkit-raycast",
+   "depth": "none"
+  },
+  "headingFrame": "true",
+  "north": {
+   "referenceFrame": "true",
+   "headingSource": "CLHeading.trueHeading",
+   "declinationDeg": -0.8,
+   "declinationProvenance": "native"
+  },
+  "headingSamples": [
+   {
+    "headingDeg": 45.0,
+    "forward": [
+     0.173648,
+     -0.3,
+     -0.984808
+    ]
+   },
+   {
+    "headingDeg": 52.25,
+    "forward": [
+     0.292372,
+     -0.3,
+     -0.956305
+    ]
+   },
+   {
+    "headingDeg": 59.5,
+    "forward": [
+     0.406737,
+     -0.3,
+     -0.913545
+    ]
+   },
+   {
+    "headingDeg": 66.75,
+    "forward": [
+     0.515038,
+     -0.3,
+     -0.857167
+    ]
+   },
+   {
+    "headingDeg": 74.0,
+    "forward": [
+     0.615661,
+     -0.3,
+     -0.788011
+    ]
+   },
+   {
+    "headingDeg": 157.0,
+    "forward": [
+     0.984808,
+     -0.3,
+     -0.173648
+    ]
+   },
+   {
+    "headingDeg": 81.25,
+    "forward": [
+     0.707107,
+     -0.3,
+     -0.707107
+    ]
+   },
+   {
+    "headingDeg": 88.5,
+    "forward": [
+     0.788011,
+     -0.3,
+     -0.615661
+    ]
+   },
+   {
+    "headingDeg": 95.75,
+    "forward": [
+     0.857167,
+     -0.3,
+     -0.515038
+    ]
+   },
+   {
+    "headingDeg": 103.0,
+    "forward": [
+     0.913545,
+     -0.3,
+     -0.406737
+    ]
+   },
+   {
+    "headingDeg": 110.25,
+    "forward": [
+     0.956305,
+     -0.3,
+     -0.292372
+    ]
+   },
+   {
+    "headingDeg": 117.5,
+    "forward": [
+     0.984808,
+     -0.3,
+     -0.173648
+    ]
+   },
+   {
+    "headingDeg": 162.0,
+    "forward": [
+     0.984808,
+     -0.3,
+     -0.173648
+    ]
+   },
+   {
+    "headingDeg": 124.75,
+    "forward": [
+     0.99863,
+     -0.3,
+     -0.052336
+    ]
+   },
+   {
+    "headingDeg": 132.0,
+    "forward": [
+     0.997564,
+     -0.3,
+     0.069756
+    ]
+   },
+   {
+    "headingDeg": 139.25,
+    "forward": [
+     0.981627,
+     -0.3,
+     0.190809
+    ]
+   },
+   {
+    "headingDeg": 146.5,
+    "forward": [
+     0.951057,
+     -0.3,
+     0.309017
+    ]
+   },
+   {
+    "headingDeg": 153.75,
+    "forward": [
+     0.906308,
+     -0.3,
+     0.422618
+    ]
+   },
+   {
+    "headingDeg": 161.0,
+    "forward": [
+     0.848048,
+     -0.3,
+     0.529919
+    ]
+   }
+  ],
+  "outline": {
+   "source": "traced",
+   "worldCorners": [
+    [
+     0.7,
+     -1.4,
+     2.3
+    ],
+    [
+     8.6864,
+     -1.4,
+     -3.7182
+    ],
+    [
+     5.6773,
+     -1.4,
+     -7.7113
+    ],
+    [
+     1.6841,
+     -1.4,
+     -4.7023
+    ],
+    [
+     -1.325,
+     -1.4,
+     -8.6954
+    ],
+    [
+     -5.3182,
+     -1.4,
+     -5.6864
+    ]
+   ],
+   "closingTap": [
+    0.7,
+    -1.4,
+    2.3
+   ]
+  },
+  "rooms": [
+   {
+    "id": "kitchen-1",
+    "label": "kitchen",
+    "labelSource": "user",
+    "floorIndex": 0,
+    "heightM": 2.8,
+    "worldCorners": [
+     [
+      6.2904,
+      -1.4,
+      -1.9127
+     ],
+     [
+      8.6864,
+      -1.4,
+      -3.7182
+     ],
+     [
+      6.8809,
+      -1.4,
+      -6.1141
+     ],
+     [
+      4.485,
+      -1.4,
+      -4.3086
+     ]
+    ],
+    "closingTap": [
+     6.2904,
+     -1.4,
+     -1.9127
+    ],
+    "openings": []
+   },
+   {
+    "id": "bed-1",
+    "label": "master bedroom",
+    "labelSource": "roomplan-section",
+    "floorIndex": 0,
+    "heightM": 2.8,
+    "worldCorners": [
+     [
+      0.7,
+      -1.4,
+      2.3
+     ],
+     [
+      3.8945,
+      -1.4,
+      -0.1073
+     ],
+     [
+      2.0891,
+      -1.4,
+      -2.5032
+     ],
+     [
+      -1.1054,
+      -1.4,
+      -0.0959
+     ]
+    ],
+    "closingTap": [
+     0.7,
+     -1.4,
+     2.3
+    ],
+    "openings": []
+   },
+   {
+    "id": "pooja-1",
+    "label": "pooja",
+    "labelSource": "user",
+    "floorIndex": 0,
+    "heightM": 2.8,
+    "worldCorners": [
+     [
+      -4.1145,
+      -1.4,
+      -4.0891
+     ],
+     [
+      -2.5172,
+      -1.4,
+      -5.2927
+     ],
+     [
+      -3.7209,
+      -1.4,
+      -6.89
+     ],
+     [
+      -5.3182,
+      -1.4,
+      -5.6864
+     ]
+    ],
+    "closingTap": [
+     -4.1145,
+     -1.4,
+     -4.0891
+    ],
+    "openings": []
+   },
+   {
+    "id": "living-1",
+    "label": "livingRoom",
+    "labelSource": "roomplan-section",
+    "floorIndex": 0,
+    "heightM": 2.8,
+    "worldCorners": [
+     [
+      -1.7073,
+      -1.4,
+      -0.8945
+     ],
+     [
+      2.2859,
+      -1.4,
+      -3.9036
+     ],
+     [
+      0.4805,
+      -1.4,
+      -6.2995
+     ],
+     [
+      -3.5127,
+      -1.4,
+      -3.2904
+     ]
+    ],
+    "closingTap": [
+     -1.7073,
+     -1.4,
+     -0.8945
+    ],
+    "openings": []
+   },
+   {
+    "id": "store-1",
+    "label": null,
+    "labelSource": "none",
+    "floorIndex": 0,
+    "heightM": 2.8,
+    "worldCorners": [
+     [
+      3.3855,
+      -1.4,
+      -4.1061
+     ],
+     [
+      5.7814,
+      -1.4,
+      -5.9116
+     ],
+     [
+      5.1796,
+      -1.4,
+      -6.7102
+     ],
+     [
+      2.7836,
+      -1.4,
+      -4.9047
+     ]
+    ],
+    "closingTap": [
+     3.3855,
+     -1.4,
+     -4.1061
+    ],
+    "openings": []
+   }
+  ],
+  "quality": {
+   "pointCloudDensity": 1800,
+   "pointCloudDensityBasis": "feature-points",
+   "coveragePercent": 80,
+   "scanDurationSec": 240,
+   "scannedAreaM2": 75,
+   "expectedRoomCount": 5,
+   "gpsConfidence": 0.8
+  }
+ },
+ "expected": {
+  "capture": {
+   "schema": "vedika.roomCapture/1",
+   "captureId": "fx-l-shape-traced",
+   "capturedAtEpoch": 1789000000,
+   "device": {
+    "platform": "ios",
+    "method": "arkit-raycast",
+    "depth": "none"
+   },
+   "frame": {
+    "units": "metres",
+    "axes": "+X east,+Y true north",
+    "north": {
+     "referenceFrame": "true",
+     "headingSource": "CLHeading.trueHeading",
+     "declinationDeg": -0.8,
+     "declinationProvenance": "native",
+     "yawSamples": 19,
+     "yawSpreadDeg": 1.22,
+     "compassConfidence": 0.939
+    },
+    "planToWorld": {
+     "units": "metres",
+     "origin": [
+      0.7,
+      -1.4,
+      2.3
+     ],
+     "xAxis": [
+      0.798635202,
+      0,
+      -0.601815432
+     ],
+     "yAxis": [
+      -0.601815432,
+      0,
+      -0.798635202
+     ]
+    }
+   },
+   "outline": {
+    "polygon": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      10.0,
+      0.0
+     ],
+     [
+      10.0,
+      5.0
+     ],
+     [
+      5.0,
+      5.0
+     ],
+     [
+      5.0,
+      10.0
+     ],
+     [
+      0.0,
+      10.0
+     ]
+    ],
+    "source": "traced"
+   },
+   "rooms": [
+    {
+     "id": "kitchen-1",
+     "label": "kitchen",
+     "labelSource": "user",
+     "polygon": [
+      [
+       7.0,
+       0.0
+      ],
+      [
+       10.0,
+       0.0
+      ],
+      [
+       10.0,
+       3.0
+      ],
+      [
+       7.0,
+       3.0
+      ]
+     ],
+     "areaM2": 9.0,
+     "heightM": 2.8,
+     "floorIndex": 0,
+     "openings": []
+    },
+    {
+     "id": "bed-1",
+     "label": "master bedroom",
+     "labelSource": "roomplan-section",
+     "polygon": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       4.0,
+       0.0
+      ],
+      [
+       4.0,
+       3.0
+      ],
+      [
+       0.0,
+       3.0
+      ]
+     ],
+     "areaM2": 12.0,
+     "heightM": 2.8,
+     "floorIndex": 0,
+     "openings": []
+    },
+    {
+     "id": "pooja-1",
+     "label": "pooja",
+     "labelSource": "user",
+     "polygon": [
+      [
+       0.0,
+       8.0
+      ],
+      [
+       2.0,
+       8.0
+      ],
+      [
+       2.0,
+       10.0
+      ],
+      [
+       0.0,
+       10.0
+      ]
+     ],
+     "areaM2": 4.0,
+     "heightM": 2.8,
+     "floorIndex": 0,
+     "openings": []
+    },
+    {
+     "id": "living-1",
+     "label": "livingRoom",
+     "labelSource": "roomplan-section",
+     "polygon": [
+      [
+       0.0,
+       4.0
+      ],
+      [
+       5.0,
+       4.0
+      ],
+      [
+       5.0,
+       7.0
+      ],
+      [
+       0.0,
+       7.0
+      ]
+     ],
+     "areaM2": 15.0,
+     "heightM": 2.8,
+     "floorIndex": 0,
+     "openings": []
+    },
+    {
+     "id": "store-1",
+     "label": null,
+     "labelSource": "none",
+     "polygon": [
+      [
+       6.0,
+       3.5
+      ],
+      [
+       9.0,
+       3.5
+      ],
+      [
+       9.0,
+       4.5
+      ],
+      [
+       6.0,
+       4.5
+      ]
+     ],
+     "areaM2": 3.0,
+     "heightM": 2.8,
+     "floorIndex": 0,
+     "openings": []
+    }
+   ],
+   "quality": {
+    "polygonClosure": true,
+    "closureGapM": 0.0,
+    "pointCloudDensity": 1800,
+    "pointCloudDensityBasis": "feature-points",
+    "coveragePercent": 80,
+    "scanDurationSec": 240,
+    "scannedAreaM2": 75,
+    "roomCount": 5,
+    "expectedRoomCount": 5,
+    "roomsTagged": 4,
+    "gpsConfidence": 0.8
+   },
+   "attestation": "caller-reported"
+  },
+  "roomZones": {
+   "kitchen-1": "SE",
+   "bed-1": "SW",
+   "pooja-1": "NW",
+   "living-1": "W",
+   "store-1": "E"
+  },
+  "status": 200,
+  "acceptForAudit": false,
+  "unlabelledRooms": [
+   "store-1"
+  ]
+ }
+}

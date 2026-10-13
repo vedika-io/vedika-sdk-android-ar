@@ -1,20 +1,17 @@
-# Vedika Android AR (`com.github.vedika-io:vedika-sdk-android-ar`)
+# Vedika Android AR 1.1.0 candidate
 
-Native ARCore room capture for the Vedika Android SDK. An app walks a room,
-taps floor corners to trace the plot/house outline and each room, faces a
-direction it knows is north and holds a button, and gets back a
-`vedika.roomCapture/1` — the same body `ar/room-capture`
-(`io.vedika.sdk.VastuArRoomCaptureRequest`, in the core `sdks/android` SDK)
-takes. This module is the ARCore-native counterpart to
-`web/vedika-public/js/vastu/room-capture-webxr.js`: same tap/undo/close-loop
-model, same north-hold rule, same plan geometry — see
-`RoomCaptureModel.kt`/`RoomCaptureGeometry.kt`'s KDoc for the exact parity
-contract, and `RoomCaptureModelTest.kt`/`RoomCaptureGeometryTest.kt` for the
-shared-fixture tests that pin it.
+Native ARCore room capture, a durable encrypted capture queue, local overlay
+relocalization and floor-pinned remedy markers.
+
+**Publication is pending.** The latest published release is 1.0.2. This
+candidate has a strict 16 KB check: ARCore 1.56.0 has aligned 64-bit LOAD
+segments but fails the current documented RELRO-end check. A newer compatible
+official artifact is still required before claiming 16 KB support.
+Real-phone accuracy not yet measured.
 
 ## Install
 
-Published via [JitPack](https://jitpack.io/#vedika-io/vedika-sdk-android-ar):
+After 1.1.0 is published, use the public JitPack coordinate:
 
 ```kotlin
 // settings.gradle.kts
@@ -25,156 +22,173 @@ dependencyResolutionManagement {
         maven { url = uri("https://jitpack.io") }
     }
 }
-```
-
-```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.vedika-io:vedika-sdk-android:1.1.0")
-    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.0.2")
+    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.1.0")
 }
 ```
 
-This repository is a published mirror of `sdks/android-ar` in the
-`vedika-io/vedika` monorepo, which is the source of truth — the monorepo
-builds it against local source through a composite build
-(`includeBuild("../android-ar")`, same pattern `sdks/android-acceptance`
-uses); this repository exists only so `./gradlew publish`/JitPack has
-something to build standalone.
+The AR package exports the core client and its public ARCore/Tink types as
+transitive API dependencies. A separate core dependency is optional. For a
+source checkout, substitute `io.vedika:vedika-android-ar` with this project
+through `includeBuild`. Android API 24 or later and Java 17 are required.
 
-## Permissions
+## Public API
 
-This module's own manifest declares `CAMERA` and an **optional**
-`android.hardware.camera.ar` feature plus `com.google.ar.core value="optional"`
-— consuming apps install on devices without ARCore, and
-[`ArCoreAvailability.status`] gates the feature at runtime instead of the
-Play Store filtering the app out entirely. A host app that wants the
-stricter, store-filtered behavior overrides both entries via manifest
-merging (`tools:node="replace"`; see the comments in
-`src/main/AndroidManifest.xml`).
+All types below are in `io.vedika.sdk.ar`.
 
-The host app must itself request the runtime `CAMERA` permission (this is a
-library module and cannot own that UI — same house style as `VastuArView`).
-Check `ArCoreAvailability.hasCameraPermission(context)`, request if needed,
-then call `start()` again.
+| API | Supported entry points |
+| --- | --- |
+| `LocalOverlayRelocalizer(session)` | `add(pose)`, `evaluate(frame, width, height, observedPixels)`, `clear()` |
+| `CaptureOutbox(file, aead)` | `enqueue`, `records`, suspending `flush`, `retry`, `removeSynced` |
+| `AndroidCaptureStore.open(context)` | Open the encrypted, device-local outbox |
+| `CaptureUploadAdapter(client.vastu, prepareProof)` | Suspending `upload(entry)` for outbox flushing |
+| `VastuArCoreUploader` | Suspending `upload(...)` and `saveCapture(...)` |
+| `VastuArCoreCaptureView` | `start`, `stop`, `destroy`, `showRemedies(capture, analysis)`, `clearRemedies` |
+| `FloorRemedyScene.from(capture, analysis)` | Remedy positions, verbatim text, source and classification |
+| `FloorRemedyGeometry` | JVM-testable plan-to-floor transforms and interior positions |
 
-## Usage
+`saveCapture` already ships in 1.0.2. The four queue/relocalizer APIs above
+are new published exports in this candidate.
+
+## Capture and display remedies
+
+The library declares an optional AR capability and camera permission. The
+host must request the runtime camera permission and handle the install state.
+Check `ArCoreAvailability.hasCameraPermission(context)` and
+`ArCoreAvailability.status(context)` before opening the camera.
 
 ```kotlin
-class RoomCaptureActivity : AppCompatActivity() {
-    private lateinit var captureView: VastuArCoreCaptureView
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        captureView = VastuArCoreCaptureView(this)
-        setContentView(captureView)
-        captureView.listener = object : VastuArCoreCaptureListener {
-            override fun onStateChanged(state: RoomCaptureState) {
-                when (state) {
-                    RoomCaptureState.NEEDS_INSTALL -> captureView.requestArCoreInstall(this@RoomCaptureActivity)
-                    RoomCaptureState.NEEDS_CAMERA_PERMISSION -> requestCameraPermission()
-                    RoomCaptureState.UNSUPPORTED -> showArUnsupportedMessage()
-                    else -> {}
-                }
-            }
-            override fun onCapture(capture: VastuRoomCapture) {
-                lifecycleScope.launch {
-                    val response = VastuArCoreUploader.upload(vedikaClient, capture)
-                    // response.data has the derived zones/audit/scan-quality requests + results
-                }
-            }
-            override fun onError(error: RoomCaptureError) { /* show error.message */ }
+val captureView = VastuArCoreCaptureView(this)
+setContentView(captureView)
+captureView.listener = object : VastuArCoreCaptureListener {
+    override fun onCapture(capture: VastuRoomCapture) {
+        lifecycleScope.launch {
+            val response = VastuArCoreUploader.upload(client, capture)
+            captureView.showRemedies(capture, response.data)
+            val scene = FloorRemedyScene.from(capture, response.data)
+            // Display scene.markers' full remedy/source/classification
+            // in the host's accessible advice list.
         }
     }
-
-    override fun onResume() { super.onResume(); captureView.start() }
-    override fun onPause() { captureView.stop(); super.onPause() }
-    override fun onDestroy() { captureView.destroy(); super.onDestroy() }
+    override fun onError(error: RoomCaptureError) {
+        // Show the error to the user.
+    }
 }
+// Activity/Fragment lifecycle:
+override fun onResume() { super.onResume(); captureView.start() }
+override fun onPause() { captureView.stop(); super.onPause() }
+override fun onDestroy() { captureView.destroy(); super.onDestroy() }
 ```
 
-The view's own bottom bar (Undo / Add room / "This way is north" (hold) /
-Finish) drives `RoomCaptureModel` the same way the web reference's HUD does.
-Set `captureView.pendingRoomLabel` (e.g. from your own room-name picker —
-`RoomCaptureModel.ROOM_LABELS` has the same list the web reference offers)
-before tapping "Add room".
+The host supplies an authorized `VedikaClient`. Keep production credentials
+on your backend and use your existing request or token exchange.
 
-### Keep the scan in the account
+Trace the outline and named rooms by tapping floor corners. Face a direction
+you know is north and hold the north button for at least three seconds and
+15 samples. The capture uses `vedika.roomCapture/1`; north is user-entered,
+not independently measured. Set `pendingRoomLabel` before adding a room.
 
-`VastuArCoreUploader.saveCapture(client, capture, scanId, propertyId, title, retentionDays)`
-stores the capture JSON (never a mesh or camera image) through `scans/save`.
-It is billed at USD 0.005 per save and needs account scan storage enabled on
-the deployment (otherwise `503 SCAN_STORAGE_DISABLED`, before any charge).
-Generate `scanId` yourself (16-128 characters of `A-Za-z0-9_-`) and keep it:
-after a timeout, retry with the same `scanId` and the same content so you are
-not charged twice. No `Idempotency-Key` is sent. Read
-`response.data.persistence`: `account-store` means the scan was kept.
+The first floor corner creates one local ARCore anchor. Purple rings show
+returned room remedies. Positions use the capture's `frame.planToWorld`
+origin/east/north axes and remain within each room, including concave rooms.
+Text comes only from `audit.defects` and `planAnalysis.defects`, using
+`roomId`/`room`, `zone`, `remedy`, `remedySource` and
+`remedyClassification`. Repeated advice is deduplicated. A note without an
+identified room is placed inside the plot outline. Missing sources remain
+missing; the host should identify them for review.
 
-## What a capture claims — and does not
+Camera tracking loss, floor-anchor tracking loss or a missing floor anchor
+hides all remedy rings. No previous pose is used as a fallback. Editing the
+capture clears its remedy display; delayed analysis for another capture is
+refused. `destroy()` detaches the anchor and clears callbacks. A new session
+requires a fresh scan; an imported scan cannot be attached to this session.
+Markers locate room-level suggestions, not detected furniture. This is a
+floor sketch, not a survey or a promise of remedy efficacy.
 
-- **`device`**: always `{platform: "android", method: "arcore-hit", depth: ...}`.
-  `depth` is `"arcore-depth"` only when `Session.isDepthModeSupported(AUTOMATIC)`
-  is true on this device AND `Config.DepthMode.AUTOMATIC` was actually
-  enabled for the session; otherwise `"none"`. Tap-to-place corners always go
-  through ARCore's plane/point hit-test (`method: "arcore-hit"`) — the Depth
-  API, when available, only widens what counts as a valid hit surface.
-- **North**: this module has no compass of its own and makes no true-north
-  claim. `frame.north.referenceFrame` is always `"manual"`: the operator
-  faces a direction they already know is north and holds the button for at
-  least 3 seconds (`RoomCaptureModel.MIN_NORTH_MS`) and 15 samples
-  (`MIN_NORTH_SAMPLES`), exactly like the web reference's calibrate step. If
-  a future revision wires in a live compass + verified declination, that
-  path may only ever produce `referenceFrame: "true"` — never `"magnetic"`;
-  the contract (`web/vedika-public/openapi.json`'s `VastuRoomCapture` schema)
-  refuses a magnetic frame outright.
-- **Point-cloud density / coverage**: not reported (`null`, basis `"none"`)
-  — ARCore's plane/point hit-test API exposes no density figure the way
-  LiDAR-backed scanning does. The server accordingly returns
-  `acceptForAudit: false` for a plain hit-test capture; zones are still
-  computed.
-- **Attestation**: `capture.attestation` is always `"caller-reported"`: the
-  server does not independently verify device geometry. Separately, an app can
-  prove it is a genuine build on a real device with Google Play Integrity. Ask
-  for a challenge (`VastuContracts.arAttestationChallenge`), request a Play
-  Integrity token whose nonce is the request-binding digest (SHA-256 over
-  `vedika-attest-v1`, the operation, the challenge and the canonical request
-  body; see the guide), and send it as
-  `VastuDeviceAttestation(platform = "android", challenge, integrityToken)` in
-  `deviceAttestation` on `ar/room-capture` or `scans/save`. A verified response
-  reports `deviceAttestation.status = "verified"`; scores do not change. The app
-  identity is yours: register your package, signing-certificate SHA-256 and
-  Play Integrity service account with Vedika first (see the Vastu API guide,
-  "Device attestation for native apps"). Until you register, responses report
-  `deviceAttestation.status = "not_configured"`.
+## Queue captures offline
 
-## Testing
+```kotlin
+val outbox = AndroidCaptureStore.open(context) // keep one process owner
+val request = VastuArRoomCaptureRequest(capture = capture)
+val entry = outbox.enqueue(JSONObject(request.toMap()).toString())
+val adapter = CaptureUploadAdapter(client.vastu, prepareProof = null)
+outbox.flush(isOnline = { connectivity.isOnline }, upload = adapter::upload)
+val states = outbox.records()
+outbox.removeSynced() // explicit acknowledgement cleanup
+```
 
-- `./gradlew testDebugUnitTest` — `RoomCaptureGeometryTest` and
-  `RoomCaptureModelTest` run the pure Kotlin port (`RoomCaptureModel.kt`,
-  `RoomCaptureGeometry.kt` — no Android or ARCore import) against
-  `sdks/fixtures/vastu-room-capture/*.json`, the same fixtures
-  `room-capture-geometry.test.mjs`/`room-capture-webxr.test.mjs` use, with
-  every numeric field checked within `1e-6`. These tests self-skip
-  (`Assume`) outside a monorepo checkout, matching
-  `sdks/android`'s `VastuResponseFixtureTest` pattern — the fixtures are not
-  bundled into the published package.
-- On-device: `sdks/android-acceptance`'s `ArCoreSessionSmokeTest` (see that
-  module) exercises `ArCoreAvailability`, a bare `Session`, and
-  `VastuArCoreCaptureView` end to end. It deliberately never asserts
-  `TrackingState.TRACKING` — a rack device lying flat with nothing to look at
-  may never reach it — and logs everything it measures instead
-  (`adb logcat -s ArCoreSessionSmokeTest`).
+`AndroidCaptureStore` uses device-key encryption and stores ciphertext in
+`noBackupFilesDir`. Merge `backup-rules-native.xml` and
+`data-extraction-rules-native.xml` into the app's backup policy to exclude
+`vedika_capture_keyset.xml` from backup and device transfer. Decryption/key
+failures throw; they never silently replace a queue with an empty one.
 
-## What this module deliberately does not do
+The queue preserves request identity, idempotency key, state, attempts and
+backoff across process restarts. Conflicts remain failed for review. It
+does not schedule background work: the host decides when to flush. Store an
+unsigned request, without `deviceAttestation`. If attestation is used,
+`prepareProof` creates a fresh request-bound proof at each upload. Never store
+short-lived attestation tokens in the outbox.
 
-- No Sceneform, no Filament, no 3D model rendering — the AR overlay is flat
-  amber ribbons/rings tracing the floor plan, drawn with plain GLES2
-  (`CameraBackgroundRenderer`, `RoomCaptureOverlayRenderer`), matching the
-  web reference's own minimal WebGL overlay.
-- No automatic room labelling — `labelSource` is always `"user"` (a label was
-  typed/picked) or `"none"`; there is no ARCore equivalent of RoomPlan's
-  `roomplan-section` source.
-- No background upload/retry queue — `VastuArCoreUploader.upload()` is a
-  thin, one-shot wrapper over the existing `VedikaClient` call; a host app
-  that wants offline queuing owns that itself, the same way it would for any
-  other SDK call.
+## Save to an account
+
+```kotlin
+val response = VastuArCoreUploader.saveCapture(
+    client, capture,
+    scanId = scanId, propertyId = propertyId,
+    title = "Room scan", retentionDays = 14,
+)
+```
+
+This uses the billed `scans/save` contract and saves capture JSON, not camera
+images or meshes. Generate and retain 16–128 character `A-Za-z0-9_-`
+identifiers. Retry the same `scanId` with exactly the same body after a timeout;
+changed content for a used identity is a conflict. No `Idempotency-Key` header
+is used on this route. Check `response.data.persistence`: `account-store`
+confirms storage; `preview-only` does not. Retention is 1–30 days.
+
+## Relocalize a custom overlay
+
+`LocalOverlayRelocalizer` owns local anchors in one ARCore session. Add
+poses from actual landmarks with `add(pose)` and retain the returned IDs.
+On every render frame, pass current independently observed landmark pixels
+to `evaluate(frame, width, height, observedPixels)`. Wire its result to
+`captureView.overlayGate` and draw through `renderRelocalizedOverlay`.
+A missing or false gate does not draw the custom overlay. Cached projected
+pixels are not valid physical observations.
+
+The policy requires three matching frames within eight pixels; that is a
+rendering threshold, not measured accuracy. Missing landmarks, tracking loss
+or invalid reprojection immediately revoke it. Call `clear()` and clear the
+host callbacks on teardown. Restart means rescan.
+
+## Build and verify
+
+With an Android SDK platform installed:
+
+```bash
+./gradlew test assembleRelease
+./gradlew -p consumer assembleRelease
+python3 -m unittest discover -s scripts -p 'test_*.py' -v
+python3 scripts/verify_artifacts.py --aar build/outputs/aar/vedika-android-ar-release.aar --report build/public-api.json
+python3 scripts/verify_artifacts.py --native consumer/build/outputs/apk/release/consumer-release-unsigned.apk --zipalign "$ANDROID_HOME/build-tools/35.0.0/zipalign" --report build/native-pages.json
+```
+
+Shared capture fixtures are available to standalone mirror tests. Tests cover
+queue identity/retries, API exports, save serialization, reprojection refusal,
+remedy sources, concave rooms, rigid anchor corrections and tracking loss.
+The consumer compiles with only the AR dependency and packages the complete
+native dependency graph.
+
+JitPack reads `jitpack.yml` at the **public mirror repository root**. The
+candidate exporter places it there. Its build uses Java 17, installs platform
+35, runs unit tests and assembles the release AAR before local Maven staging.
+
+The strict native checker inventories every `.so`, checks every 64-bit LOAD
+segment and RELRO end, and verifies uncompressed APK library offsets. It
+also runs `zipalign -c -P 16 4`. The candidate fails that gate while ARCore's
+RELRO ends remain unaligned. See [Google's current 16 KB instructions](https://developer.android.com/guide/practices/page-sizes).
+
+Unit tests, builds and static native checks do not prove physical tracking,
+heading accuracy or operation on a 16 KB device.

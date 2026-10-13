@@ -65,8 +65,17 @@ class RoomCaptureOverlayRenderer {
         reticle: Vec3?,
         viewMatrix: FloatArray,
         projectionMatrix: FloatArray,
+    ) = draw(outlineCorners, outlineClosed, reticle, viewMatrix, projectionMatrix, null)
+
+    internal fun draw(
+        outlineCorners: List<Vec3>,
+        outlineClosed: Boolean,
+        reticle: Vec3?,
+        viewMatrix: FloatArray,
+        projectionMatrix: FloatArray,
+        remedies: FloorRemedyController.Draw?,
     ) {
-        if (outlineCorners.isEmpty() && reticle == null) return
+        if (outlineCorners.isEmpty() && reticle == null && remedies == null) return
         val vp = FloatArray(16)
         Matrix.multiplyMM(vp, 0, projectionMatrix, 0, viewMatrix, 0)
 
@@ -80,6 +89,12 @@ class RoomCaptureOverlayRenderer {
         }
         if (reticle != null) {
             drawTriangles(RoomCaptureRenderGeometry.ring(reticle), RETICLE_COLOR)
+        }
+        if (remedies != null) {
+            val anchored = FloatArray(16)
+            Matrix.multiplyMM(anchored, 0, vp, 0, remedies.modelMatrix, 0)
+            GLES20.glUniformMatrix4fv(mvpUniform, 1, false, anchored, 0)
+            drawTriangles(remedies.vertices, floatArrayOf(0.45f, 0.34f, 0.69f, 0.95f))
         }
         GLES20.glDisable(GLES20.GL_BLEND)
     }

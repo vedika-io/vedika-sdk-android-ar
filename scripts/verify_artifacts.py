@@ -137,6 +137,29 @@ def native_report(path):
     return rows
 
 
+def apply_ratchet(rows, known):
+    keys = {(entry["abi"], entry["library"]): entry for entry in known["libraries"]}
+    assert len(keys) == len(known["libraries"]), "Duplicate known library"
+    for row in rows:
+        parts = row["library"].split("/")
+        key = (parts[-2], parts[-1])
+        entry = keys.get(key)
+        row["gatePassed"] = row["passes16k"]
+        row["status"] = "PASS" if row["passes16k"] else "FAIL"
+        if row["passes16k"] and entry:
+            row["status"] = "PASS: remove from known list"
+        elif entry:
+            allowed = (row["bits"] == 64 and row["sha256"] == entry["sha256"]
+                       and entry["check"] == "RELRO_END" and entry["remainder"] == 4096
+                       and row["load16k"] and row["zip16k"]
+                       and bool(row["relroSegments"])
+                       and all(segment["remainder16k"] == entry["remainder"]
+                               for segment in row["relroSegments"]))
+            row["gatePassed"] = allowed
+            row["status"] = "UPSTREAM-KNOWN" if allowed else "FAIL"
+    return all(row["gatePassed"] for row in rows)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--aar", type=Path)
@@ -151,19 +174,27 @@ def main():
         report["aarSha256"] = hashlib.sha256(args.aar.read_bytes()).hexdigest()
     if args.native:
         report["nativeLibraries"] = native_report(args.native)
+        known = json.loads(Path(__file__).with_name("known_upstream_native_pages.json").read_text())
+        apply_ratchet(report["nativeLibraries"], known)
         report["nativeArchiveSha256"] = hashlib.sha256(args.native.read_bytes()).hexdigest()
     if args.zipalign:
         assert args.native and args.native.suffix == ".apk"
         result = subprocess.run([str(args.zipalign), "-c", "-P", "16", "4", str(args.native)], capture_output=True, text=True)
         report["zipalign"] = {"exit": result.returncode, "output": result.stdout + result.stderr}
-    report["passed"] = all(row["passes16k"] for row in report.get("nativeLibraries", [])) and report.get("zipalign", {}).get("exit", 0) == 0
+    report["passed"] = all(row["gatePassed"] for row in report.get("nativeLibraries", [])) and report.get("zipalign", {}).get("exit", 0) == 0
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + "\n")
     print("Public exports:", len(report.get("publicExports", [])))
     for row in report.get("nativeLibraries", []):
         print(row["library"], "bits=" + str(row["bits"]), "LOAD=" + str(row["load16k"]),
               "RELRO=" + str(row["relro16k"]), "ZIP=" + str(row["zip16k"]),
-              "PASS" if row["passes16k"] else "FAIL")
+              row["status"])
+    import os
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+            summary.write("\nNative pages inventory\n\n")
+            for row in report.get("nativeLibraries", []):
+                summary.write("- " + row["library"] + ": " + row["status"] + "\n")
     raise SystemExit(0 if report["passed"] else 1)
 
 

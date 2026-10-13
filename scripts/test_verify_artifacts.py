@@ -1,6 +1,7 @@
 import struct
 import unittest
-from verify_artifacts import elf_report
+from verify_artifacts import elf_report, apply_ratchet
+import copy
 
 
 def library(load_align=16384, relro_end=16384):
@@ -40,3 +41,49 @@ class NativePageGateTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class RatchetTest(unittest.TestCase):
+    def setUp(self):
+        self.row = dict(library="lib/arm64-v8a/libarcore_sdk_c.so", sha256="exact",
+                        zip16k=True, **elf_report(library(relro_end=20480)))
+        self.known = {"libraries": [dict(abi="arm64-v8a", library="libarcore_sdk_c.so",
+                       sha256="exact", check="RELRO_END", remainder=4096)]}
+
+    def test_exact_upstream_failure_is_disclosed(self):
+        self.assertTrue(apply_ratchet([self.row], self.known))
+        self.assertEqual(self.row["status"], "UPSTREAM-KNOWN")
+        self.assertFalse(self.row["passes16k"])
+
+    def test_unlisted_failure_rejected(self):
+        self.assertFalse(apply_ratchet([self.row], {"libraries": []}))
+
+    def test_changed_checksum_rejected(self):
+        self.row["sha256"] = "changed"
+        self.assertFalse(apply_ratchet([self.row], self.known))
+
+    def test_load_failure_rejected(self):
+        self.row["load16k"] = False
+        self.assertFalse(apply_ratchet([self.row], self.known))
+
+    def test_zip_failure_rejected(self):
+        self.row["zip16k"] = False
+        self.assertFalse(apply_ratchet([self.row], self.known))
+
+    def test_different_remainder_rejected(self):
+        self.row["relroSegments"][0]["remainder16k"] = 8192
+        self.assertFalse(apply_ratchet([self.row], self.known))
+
+    def test_different_check_rejected(self):
+        self.known["libraries"][0]["check"] = "LOAD"
+        self.assertFalse(apply_ratchet([self.row], self.known))
+
+    def test_fixed_library_requests_removal(self):
+        self.row.update(elf_report(library()))
+        self.row["sha256"] = "fixed"
+        self.assertTrue(apply_ratchet([self.row], self.known))
+        self.assertIn("remove from known list", self.row["status"])
+
+    def test_unknown_zip_failure_rejected(self):
+        self.row.update(elf_report(library()))
+        self.row.update(passes16k=False, zip16k=False, library="lib/x86_64/other.so")
+        self.assertFalse(apply_ratchet([self.row], self.known))

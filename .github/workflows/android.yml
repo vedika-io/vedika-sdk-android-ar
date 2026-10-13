@@ -52,7 +52,7 @@ jobs:
         with:
           name: android-ar-build
           path: artifacts
-      - name: Strict 16 KB ELF, RELRO and ZIP check
+      - name: Ratcheted 16 KB ELF, RELRO and ZIP check
         run: |
           python3 scripts/verify_artifacts.py --native artifacts/consumer/build/outputs/apk/release/consumer-release-unsigned.apk --zipalign "$ANDROID_HOME/build-tools/35.0.0/zipalign" --report native-pages.json
       - name: Keep the complete native inventory, including failures

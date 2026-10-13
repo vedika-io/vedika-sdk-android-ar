@@ -193,3 +193,11 @@ RELRO ends remain unaligned. See [Google's current 16 KB instructions](https://d
 
 Unit tests, builds and static native checks do not prove physical tracking,
 heading accuracy or operation on a 16 KB device.
+
+## Known issue: 16 KB page-size devices
+
+ARCore 1.56.0, the latest published release, ships 64-bit libraries that fail
+the 16 KB RELRO alignment check. ARCore may fail to load on devices using
+16 KB pages. Version 1.0.2 has the same dependency. We will publish an update
+when a compliant ARCore release is available. Native checks retain an exact
+checksum record of these four upstream failures and reject new failures.

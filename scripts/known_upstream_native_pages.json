@@ -1,0 +1,34 @@
+{
+  "source": "https://dl.google.com/dl/android/maven2/com/google/ar/core/1.56.0/core-1.56.0.aar",
+  "version": "1.56.0",
+  "libraries": [
+    {
+      "abi": "arm64-v8a",
+      "library": "libarcore_sdk_c.so",
+      "sha256": "28b4651be4dd0682fc8ab424759c2043cfbb6e62e8ecf9a8cc348c4e3d145af3",
+      "check": "RELRO_END",
+      "remainder": 4096
+    },
+    {
+      "abi": "arm64-v8a",
+      "library": "libarcore_sdk_jni.so",
+      "sha256": "a4f04022337ae3cda065864868408326d1a36070cff6d9dd7171f9b292900b52",
+      "check": "RELRO_END",
+      "remainder": 4096
+    },
+    {
+      "abi": "x86_64",
+      "library": "libarcore_sdk_c.so",
+      "sha256": "8c9c0af1f5225a31c0baf21c8785d362fef64ad133b645ddc5d2cedb68d71b4b",
+      "check": "RELRO_END",
+      "remainder": 4096
+    },
+    {
+      "abi": "x86_64",
+      "library": "libarcore_sdk_jni.so",
+      "sha256": "94621dbc3d062454b6b3e3c5648b185c5ec5f361fccb44f36b2631134facaa0b",
+      "check": "RELRO_END",
+      "remainder": 4096
+    }
+  ]
+}

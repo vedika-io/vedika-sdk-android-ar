@@ -22,7 +22,7 @@ class PublicApiTest {
     }
 
     @Test fun publishedTestsContainAllSharedCaptureFixtures() {
-        val directory = javaClass.classLoader.getResource("vastu-room-capture")
+        val directory = requireNotNull(javaClass.classLoader).getResource("vastu-room-capture")
         assertNotNull("Mirror tests must run the shared fixtures instead of skipping them", directory)
         val files = java.io.File(directory!!.toURI()).listFiles { f -> f.extension == "json" }!!
         assertEquals(7, files.size)

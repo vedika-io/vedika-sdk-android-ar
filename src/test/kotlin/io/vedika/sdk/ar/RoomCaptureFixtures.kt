@@ -22,7 +22,7 @@ object RoomCaptureFixtures {
 
     fun monorepoRoot(): File? = generateSequence(File(System.getProperty("user.dir")!!)) { it.parentFile }
         .firstOrNull { File(it, "sdks/fixtures/vastu-room-capture").isDirectory }
-        ?: javaClass.classLoader.getResource("vastu-room-capture")?.let { File(it.toURI()) }
+        ?: requireNotNull(javaClass.classLoader).getResource("vastu-room-capture")?.let { File(it.toURI()) }
 
     fun load(root: File): List<JSONObject> =
         (if (root.name == "vastu-room-capture") root else File(root, "sdks/fixtures/vastu-room-capture"))

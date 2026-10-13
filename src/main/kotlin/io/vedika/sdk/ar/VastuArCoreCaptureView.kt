@@ -207,7 +207,7 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
             if (!remedyController.setScene(FloorRemedyScene.from(capture, analysis))) {
                 postError("Floor anchor unavailable. Start a fresh scan before placing remedies.")
             }
-        } catch (e: IllegalArgumentException) {
+        } catch (e: RuntimeException) {
             postError("The returned remedies do not match this floor scan.", e)
         }
     }

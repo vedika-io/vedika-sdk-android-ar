@@ -29,9 +29,9 @@ data class FloorRemedyScene(
             FloorRemedyGeometry.interiorPoint(capture.outline.polygon)
             val data = analysis.raw
             val returned = data.optJSONArray("rooms")
-            val zones = (0 until (returned?.length() ?: 0)).associate { i ->
+            val analyzedRooms = (0 until (returned?.length() ?: 0)).associate { i ->
                 val room = returned!!.getJSONObject(i)
-                room.getString("id") to room.optString("zone")
+                room.getString("id") to room
             }
             val markers = linkedSetOf<FloorRemedyMarker>()
             for (section in listOf("audit", "planAnalysis")) {
@@ -45,8 +45,9 @@ data class FloorRemedyScene(
                     val zone = defect.text("zone")
                     val rooms = capture.rooms.filter { room ->
                         if (roomId != null) room.id == roomId
-                        else roomName != null && normalized(roomName) == normalized(room.label.orEmpty()) &&
-                            (zone == null || zones[room.id] == zone)
+                        else roomName != null && normalized(roomName) in listOf(
+                            normalized(room.label.orEmpty()), normalized(analyzedRooms[room.id]?.optString("roomType").orEmpty()),
+                        ) && (zone == null || analyzedRooms[room.id]?.optString("zone") == zone)
                     }
                     fun marker(id: String?, polygon: List<List<Double>>) = FloorRemedyMarker(
                         id, FloorRemedyGeometry.interiorPoint(polygon), remedy,

@@ -70,6 +70,12 @@ dependencies {
 
 // Maven publishing — `./gradlew publish` (configure the repository URL/creds in CI).
 publishing {
+    repositories {
+        maven {
+            name = "consumer"
+            url = layout.buildDirectory.dir("consumer-maven").get().asFile.toURI()
+        }
+    }
     publications {
         register<MavenPublication>("release") {
             groupId = "io.vedika"

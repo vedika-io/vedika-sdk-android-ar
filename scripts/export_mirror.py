@@ -2,6 +2,7 @@
 """Copy this package into an existing candidate mirror checkout, without publishing."""
 import argparse
 from pathlib import Path
+import re
 import shutil
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -19,9 +20,12 @@ for name in ("src", "gradle", "scripts", "consumer"):
 build = destination / "build.gradle.kts"
 text = build.read_text()
 assert text.count('api("io.vedika:vedika-android-sdk:1.1.0")') == 1
-build.write_text(text.replace('api("io.vedika:vedika-android-sdk:1.1.0")',
-                             'api("com.github.vedika-io:vedika-sdk-android:1.1.0")')
-                 .replace('https://github.com/vedika-io/vedika"', 'https://github.com/vedika-io/vedika-sdk-android-ar"'))
+text = text.replace('api("io.vedika:vedika-android-sdk:1.1.0")',
+                    'api("com.github.vedika-io:vedika-sdk-android:1.1.0")')
+text, scm_count = re.subn(r'scm \{ url\.set\("[^"]+"\) \}',
+                        'scm { url.set("https://github.com/vedika-io/vedika-sdk-android-ar") }', text)
+assert scm_count == 1, "Expected one public source link"
+build.write_text(text)
 (destination / "settings.gradle.kts").write_text('''pluginManagement {
     repositories { google(); mavenCentral(); gradlePluginPortal() }
 }

@@ -30,8 +30,8 @@ dependencies {
 
 The AR package exports the core client and its public ARCore/Tink types as
 transitive API dependencies. A separate core dependency is optional. For a
-source checkout, substitute `io.vedika:vedika-android-ar` with this project
-through `includeBuild`. Android API 24 or later and Java 17 are required.
+source checkout, build and stage the candidate locally with the commands
+below. Android API 24 or later and Java 17 are required.
 
 ## Public API
 
@@ -169,7 +169,7 @@ host callbacks on teardown. Restart means rescan.
 With an Android SDK platform installed:
 
 ```bash
-./gradlew test assembleRelease
+./gradlew test assembleRelease publishReleasePublicationToConsumerRepository
 ./gradlew -p consumer assembleRelease
 python3 -m unittest discover -s scripts -p 'test_*.py' -v
 python3 scripts/verify_artifacts.py --aar build/outputs/aar/vedika-android-ar-release.aar --report build/public-api.json
@@ -179,8 +179,8 @@ python3 scripts/verify_artifacts.py --native consumer/build/outputs/apk/release/
 Shared capture fixtures are available to standalone mirror tests. Tests cover
 queue identity/retries, API exports, save serialization, reprojection refusal,
 remedy sources, concave rooms, rigid anchor corrections and tracking loss.
-The consumer compiles with only the AR dependency and packages the complete
-native dependency graph.
+The consumer compiles against the locally staged AAR and Maven metadata with
+only the AR dependency and packages the complete native dependency graph.
 
 JitPack reads `jitpack.yml` at the **public mirror repository root**. The
 candidate exporter places it there. Its build uses Java 17, installs platform

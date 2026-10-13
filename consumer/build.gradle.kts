@@ -17,3 +17,11 @@ dependencies {
     // Deliberately ONLY the AR dependency: public types must be transitive.
     implementation("io.vedika:vedika-android-ar:1.1.0")
 }
+// Resolve the source checkout's core coordinate
+// that transitive entry to the existing public client for this artifact test.
+configurations.all {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("io.vedika:vedika-android-sdk"))
+            .using(module("com.github.vedika-io:vedika-sdk-android:1.1.0"))
+    }
+}

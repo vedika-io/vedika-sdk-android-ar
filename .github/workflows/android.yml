@@ -22,7 +22,7 @@ jobs:
       - name: Install the declared Android tools
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Unit tests and release AAR
-        run: ./gradlew --no-daemon --max-workers=2 test assembleRelease
+        run: ./gradlew --no-daemon --max-workers=2 test assembleRelease publishReleasePublicationToConsumerRepository
       - name: Compile the public consumer and package every native dependency
         run: ./gradlew --no-daemon --max-workers=2 -p consumer assembleRelease
       - name: Verify public exports and negative controls

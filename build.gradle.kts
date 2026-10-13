@@ -58,6 +58,9 @@ dependencies {
 
     // Tink Android: Apache-2.0, pinned; keysets encrypted by Android Keystore.
     api("com.google.crypto.tink:tink-android:1.15.0")
+    // Resolve the legacy AR annotation artifact to the encrypted-store JVM
+    // variant. Publish this dependency so consuming apps do not need exclusions.
+    implementation("androidx.annotation:annotation:1.8.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

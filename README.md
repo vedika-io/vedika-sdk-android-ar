@@ -42,7 +42,7 @@ All types below are in `io.vedika.sdk.ar`.
 | `LocalOverlayRelocalizer(session)` | `add(pose)`, `evaluate(frame, width, height, observedPixels)`, `clear()` |
 | `CaptureOutbox(file, aead)` | `enqueue`, `records`, suspending `flush`, `retry`, `removeSynced` |
 | `AndroidCaptureStore.open(context)` | Open the encrypted, device-local outbox |
-| `CaptureUploadAdapter(client.vastu, prepareProof)` | Suspending `upload(entry)` for outbox flushing |
+| `CaptureUploadAdapter` | Suspending `upload(entry, client.vastu, prepareProof)` for outbox flushing |
 | `VastuArCoreUploader` | Suspending `upload(...)` and `saveCapture(...)` |
 | `VastuArCoreCaptureView` | `start`, `stop`, `destroy`, `showRemedies(capture, analysis)`, `clearRemedies` |
 | `FloorRemedyScene.from(capture, analysis)` | Remedy positions, verbatim text, source and classification |
@@ -112,8 +112,9 @@ floor sketch, not a survey or a promise of remedy efficacy.
 val outbox = AndroidCaptureStore.open(context) // keep one process owner
 val request = VastuArRoomCaptureRequest(capture = capture)
 val entry = outbox.enqueue(JSONObject(request.toMap()).toString())
-val adapter = CaptureUploadAdapter(client.vastu, prepareProof = null)
-outbox.flush(isOnline = { connectivity.isOnline }, upload = adapter::upload)
+outbox.flush(isOnline = { connectivity.isOnline }) { entry ->
+    CaptureUploadAdapter.upload(entry, client.vastu, prepareProof = null)
+}
 val states = outbox.records()
 outbox.removeSynced() // explicit acknowledgement cleanup
 ```

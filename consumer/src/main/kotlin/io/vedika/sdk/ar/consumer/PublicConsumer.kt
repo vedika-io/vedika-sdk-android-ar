@@ -16,8 +16,7 @@ class PublicConsumer(context: Context, session: Session) {
     fun gate(frame: Frame) = relocalizer.evaluate(frame, 100, 100, emptyMap())
     fun remedies(capture: VastuRoomCapture, data: VastuArRoomCaptureData) = view.showRemedies(capture, data)
     suspend fun flush(client: VedikaClient) {
-        val adapter = CaptureUploadAdapter(client.vastu)
-        queue.flush(isOnline = { false }, upload = adapter::upload)
+        queue.flush(isOnline = { false }) { entry -> CaptureUploadAdapter.upload(entry, client.vastu) }
     }
     suspend fun save(client: VedikaClient, capture: VastuRoomCapture) = VastuArCoreUploader.saveCapture(
         client, capture, "scan-0123456789abcdef", "property-0123456789ab", "Build check", 1,

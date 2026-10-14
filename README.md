@@ -1,17 +1,23 @@
-# Vedika Android AR 1.1.0 candidate
+# Vedika Android AR 1.1.1
 
 Native ARCore room capture, a durable encrypted capture queue, local overlay
 relocalization and floor-pinned remedy markers.
 
-**Publication is pending.** The latest published release is 1.0.2. This
-candidate has a strict 16 KB check: ARCore 1.56.0 has aligned 64-bit LOAD
-segments but fails the current documented RELRO-end check. A newer compatible
-official artifact is still required before claiming 16 KB support.
+ARCore 1.56.0 has aligned 64-bit LOAD segments but fails the current
+documented RELRO-end check, so 16 KB page support is not claimed. A newer
+compatible official artifact is still required.
 Real-phone accuracy not yet measured.
+
+## Changes
+
+- **1.1.1:** remedy markers no longer draw on frames where the camera has
+  lost tracking. In 1.1.0 they could be drawn before the tracking check.
+- **1.1.0:** capture queue, local overlay relocalization and floor-pinned
+  remedy markers.
 
 ## Install
 
-After 1.1.0 is published, use the public JitPack coordinate:
+Use the public JitPack coordinate:
 
 ```kotlin
 // settings.gradle.kts
@@ -24,7 +30,7 @@ dependencyResolutionManagement {
 }
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.1.0")
+    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.1.1")
 }
 ```
 
@@ -48,8 +54,8 @@ All types below are in `io.vedika.sdk.ar`.
 | `FloorRemedyScene.from(capture, analysis)` | Remedy positions, verbatim text, source and classification |
 | `FloorRemedyGeometry` | JVM-testable plan-to-floor transforms and interior positions |
 
-`saveCapture` already ships in 1.0.2. The four queue/relocalizer APIs above
-are new published exports in this candidate.
+`saveCapture` ships since 1.0.2. The four queue and relocalizer APIs above
+ship since 1.1.0.
 
 ## Capture and display remedies
 
@@ -198,6 +204,6 @@ heading accuracy or operation on a 16 KB device.
 
 ARCore 1.56.0, the latest published release, ships 64-bit libraries that fail
 the 16 KB RELRO alignment check. ARCore may fail to load on devices using
-16 KB pages. Version 1.0.2 has the same dependency. We will publish an update
+16 KB pages. Versions 1.0.2 and 1.1.0 have the same dependency. We will publish an update
 when a compliant ARCore release is available. Native checks retain an exact
 checksum record of these four upstream failures and reject new failures.

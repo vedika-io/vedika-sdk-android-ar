@@ -34,6 +34,24 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 /**
+ * The frame-dispatch boundary `onDrawFrame` uses for the relocalized overlay.
+ * Internal so [ArNativeOverlayTrackingOrderTest] can drive it with the real
+ * ARCore [TrackingState] and recorded callbacks; ARCore's `Frame` cannot be
+ * constructed off-device, hence the generic frame type.
+ */
+internal fun <F> dispatchRelocalizedOverlay(
+    frame: F,
+    trackingState: TrackingState,
+    gate: ((F) -> Boolean)?,
+    render: ((F) -> Unit)?,
+) {
+    // The gate runs on every frame so a relocalizer can see tracking loss and
+    // reset; only the draw is withheld while the camera is not TRACKING.
+    val open = gate?.invoke(frame) == true
+    if (open && trackingState == TrackingState.TRACKING) render?.invoke(frame)
+}
+
+/**
  * Walk a room with ARCore, tap floor corners, and produce a
  * `vedika.roomCapture/1` — the native equivalent of
  * `mountRoomCapture`/`createCaptureModel` in
@@ -518,12 +536,13 @@ class VastuArCoreCaptureView @JvmOverloads constructor(
             }
             lastFrame = frame
             backgroundRenderer.draw(frame)
-            if (overlayGate?.invoke(frame) == true) renderRelocalizedOverlay?.invoke(frame)
-
             val camera = frame.camera
-            if (camera.trackingState != TrackingState.TRACKING) {
+            val trackingState = camera.trackingState
+            dispatchRelocalizedOverlay(frame, trackingState, overlayGate, renderRelocalizedOverlay)
+
+            if (trackingState != TrackingState.TRACKING) {
                 reticle = null
-                if (camera.trackingState == TrackingState.PAUSED && !reportedTrackingLostOnce) {
+                if (trackingState == TrackingState.PAUSED && !reportedTrackingLostOnce) {
                     reportedTrackingLostOnce = true
                     setState(RoomCaptureState.TRACKING_LOST)
                     postError(trackingLostReason(camera))

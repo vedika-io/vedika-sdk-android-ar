@@ -1,7 +1,7 @@
 name: Android AR candidate
 on:
   push:
-    branches: ["ci/1.1.0-candidate"]
+    branches: ["ci/1.1.1-candidate"]
   pull_request:
   workflow_dispatch:
 permissions:

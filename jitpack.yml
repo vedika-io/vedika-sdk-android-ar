@@ -1,4 +1,4 @@
-# JitPack configuration for the Android AR 1.1.0 candidate — the
+# JitPack configuration for Android AR 1.1.1 — the
 # ARCore-native companion to `sdks/android`. JitPack's default build image
 # sets `ANDROID_HOME` (`/opt/android-sdk-linux`) but ships NO platform
 # under it — only `platform-tools/build-tools/tools` — so the platform

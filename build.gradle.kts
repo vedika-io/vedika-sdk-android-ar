@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "io.vedika"
-version = "1.1.0"
+version = "1.1.1"
 
 android {
     namespace = "io.vedika.sdk.ar"

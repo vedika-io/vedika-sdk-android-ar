@@ -1,4 +1,4 @@
-# Vedika Android AR 1.1.1
+# Vedika Android AR 1.2.0
 
 Native ARCore room capture, a durable encrypted capture queue, local overlay
 relocalization and floor-pinned remedy markers.
@@ -10,6 +10,8 @@ Real-phone accuracy not yet measured.
 
 ## Changes
 
+- **1.2.0:** `FloorMerge` and `FloorMergeSession` post a multi-floor
+  merge to `ar/capture-merge`.
 - **1.1.1:** remedy markers no longer draw on frames where the camera has
   lost tracking. In 1.1.0 they could be drawn before the tracking check.
 - **1.1.0:** capture queue, local overlay relocalization and floor-pinned
@@ -30,7 +32,7 @@ dependencyResolutionManagement {
 }
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.1.1")
+    implementation("com.github.vedika-io:vedika-sdk-android-ar:1.2.0")
 }
 ```
 
@@ -50,6 +52,8 @@ All types below are in `io.vedika.sdk.ar`.
 | `AndroidCaptureStore.open(context)` | Open the encrypted, device-local outbox |
 | `CaptureUploadAdapter` | Suspending `upload(entry, client.vastu, prepareProof)` for outbox flushing |
 | `VastuArCoreUploader` | Suspending `upload(...)` and `saveCapture(...)` |
+| `FloorMerge` | `prepare(input)`, suspending `merge(client, input, idempotencyKey)` |
+| `FloorMergeSession` | The state behind a "merge floors" screen: `addFloor`, `addPick`, `undoPick`, `canMerge`, `status`, `prepare`, suspending `merge` |
 | `VastuArCoreCaptureView` | `start`, `stop`, `destroy`, `showRemedies(capture, analysis)`, `clearRemedies` |
 | `FloorRemedyScene.from(capture, analysis)` | Remedy positions, verbatim text, source and classification |
 | `FloorRemedyGeometry` | JVM-testable plan-to-floor transforms and interior positions |
@@ -154,6 +158,61 @@ identifiers. Retry the same `scanId` with exactly the same body after a timeout;
 changed content for a used identity is a conflict. No `Idempotency-Key` header
 is used on this route. Check `response.data.persistence`: `account-store`
 confirms storage; `preview-only` does not. Retention is 1–30 days.
+
+## Scan two floors and merge
+
+Scan each floor on its own with `VastuArCoreCaptureView`, set that floor's
+`floorIndex` before scanning, and measure its elevation above the building
+datum. Then pick the same stair (or measured door) points on both plans and call
+`FloorMerge.merge`, which posts `ar/capture-merge`. Available from 1.2.0.
+
+A "merge floors" screen can drive `FloorMergeSession`: `addFloor(capture, elevationM)`,
+`addPick(captureId, reference, next)`, `canMerge()`, `status()`, `prepare()` and suspending
+`merge(client, key)`. It only collects the floors and picked points; `FloorMerge` still validates them and
+refuses a bad link before anything is sent. The acceptance app's debug build has a working screen
+(`MergeFloorsActivity`, source SDK only).
+
+```kotlin
+val input = FloorMergeInput(
+    scans = listOf(FloorScan(groundCapture, elevationM = 0.0), FloorScan(firstCapture, elevationM = 3.2)),
+    links = listOf(
+        FloorLink(
+            toCaptureId = firstCapture.captureId, kind = FloorLinkKind.STAIR,
+            points = listOf( // the same spot: reference floor plan, then first floor plan, metres
+                SharedFloorPoint(FloorPoint(2.0, 1.0), FloorPoint(0.8, 0.6)),
+                SharedFloorPoint(FloorPoint(2.0, 3.0), FloorPoint(0.8, 2.6)),
+                SharedFloorPoint(FloorPoint(4.0, 2.0), FloorPoint(2.8, 1.6)),
+            ),
+        ),
+    ),
+    toleranceM = 0.05,
+)
+val result = FloorMerge.merge(client, input, idempotencyKey = retainedKey)
+result.building.floorStack   // both floors, one building
+result.registration.describe() // the stated shared-point error
+```
+
+- The first scan is the reference floor. Every other floor needs one link of at
+  least 3 shared points (the wire minimum is 2; 3 gives a check beyond a
+  baseline). Points must lie inside their own floor's outline and be at least
+  0.1 m apart on both floors.
+- `FloorMerge.prepare(input)` builds and validates the request with no network
+  call. A bad link throws `FloorMergeRefusedException` (`reason` is a
+  `FloorMergeRefusal`) before anything is sent, so nothing is billed: fewer than
+  two floors, an unknown or duplicate link, a duplicate floor index, capture id
+  or elevation, too few or non-finite points, points outside the floor, or an
+  error above `toleranceM`.
+- The API links only captures on the same floor, so the shared points become
+  one floor frame per floor (`floors[].originXY`) and `links` is empty. The
+  merge is translation only: each scan's recorded true north is kept and there is
+  no scale change.
+- The call is billed. Keep `idempotencyKey` (1-256 visible ASCII characters)
+  and reuse it, with the same input, to retry a timeout without a second
+  charge. `maxChargeUsd` caps the debit; the API refuses a higher charge before
+  any debit.
+- The stated error is the agreement of your picked points (RMS and maximum, in
+  metres), not survey or house accuracy. A response that does not match what
+  was sent throws `FloorMergeResponseException`; keep the original scans.
 
 ## Relocalize a custom overlay
 

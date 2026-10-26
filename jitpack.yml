@@ -1,10 +1,10 @@
-# JitPack configuration for Android AR 1.1.1 — the
+# JitPack configuration for Android AR 2.0.0 — the
 # ARCore-native companion to `sdks/android`. JitPack's default build image
 # sets `ANDROID_HOME` (`/opt/android-sdk-linux`) but ships NO platform
 # under it — only `platform-tools/build-tools/tools` — so the platform
 # jar Gradle's compile classpath requires (compileSdk 35 per
 # `sdks/android-ar/build.gradle.kts`) and that `verifyArPackagingSdk` in
-# the consumed `io.vedika:vedika-android-sdk:1.1.0` checks for (any of
+# the consumed `io.vedika:vedika-android-sdk:2.0.0` checks for (any of
 # 34/35/36) must be installed before the gradle build runs. The bundled
 # `tools/bin/sdkmanager` predates Android-Gradle 8.5.2 and may refuse
 # the platform 35 repository entry, so this first tries the bundled

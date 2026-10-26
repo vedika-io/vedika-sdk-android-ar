@@ -12,6 +12,8 @@ class PublicApiTest {
             AndroidCaptureStore::class.java to setOf("open"),
             CaptureUploadAdapter::class.java to setOf("upload"),
             VastuArCoreUploader::class.java to setOf("upload", "saveCapture"),
+            FloorMerge::class.java to setOf("prepare", "merge"),
+            FloorMergeSession::class.java to setOf("addFloor", "addPick", "canMerge", "prepare", "merge"),
             VastuArCoreCaptureView::class.java to setOf("showRemedies", "clearRemedies"),
         )
         expected.forEach { (type, names) ->

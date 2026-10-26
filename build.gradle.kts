@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "io.vedika"
-version = "1.1.1"
+version = "2.0.0"
 
 android {
     namespace = "io.vedika.sdk.ar"
@@ -46,7 +46,7 @@ dependencies {
     // `settings.gradle.kts`'s `includeBuild("../android")`, the same
     // composite-build pattern `sdks/android-acceptance` uses, so this module
     // always builds against the current SDK source, never a stale jar.
-    api("com.github.vedika-io:vedika-sdk-android:1.1.0")
+    api("com.github.vedika-io:vedika-sdk-android:2.0.0")
 
     // ARCore: Session, Frame, Camera, Pose, hit-testing, Depth API support
     // checks. Google Maven metadata still lists 1.56.0 as latest (2026-10-13).

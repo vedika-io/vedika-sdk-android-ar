@@ -19,9 +19,9 @@ for name in ("src", "gradle", "scripts", "consumer"):
                     ignore=shutil.ignore_patterns("build", ".gradle", "__pycache__", "local.properties"))
 build = destination / "build.gradle.kts"
 text = build.read_text()
-assert text.count('api("io.vedika:vedika-android-sdk:1.1.0")') == 1
-text = text.replace('api("io.vedika:vedika-android-sdk:1.1.0")',
-                    'api("com.github.vedika-io:vedika-sdk-android:1.1.0")')
+assert text.count('api("io.vedika:vedika-android-sdk:2.0.0")') == 1
+text = text.replace('api("io.vedika:vedika-android-sdk:2.0.0")',
+                    'api("com.github.vedika-io:vedika-sdk-android:2.0.0")')
 text, scm_count = re.subn(r'scm \{ url\.set\("[^"]+"\) \}',
                         'scm { url.set("https://github.com/vedika-io/vedika-sdk-android-ar") }', text)
 assert scm_count == 1, "Expected one public source link"
